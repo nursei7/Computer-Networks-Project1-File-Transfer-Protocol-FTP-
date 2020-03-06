@@ -183,49 +183,62 @@ int main(int argc, char* argv[]) {
                         }
                         count = count +1;
                         str = strtok(NULL, " ");
-                    }
+                    }   
                         if(strcmp(command, "USER") == 0){
                             int j = 0;
                             int loc = -1;
                             for(j = 0; j < numofusers; j++){
-                                printf("Arg is %s\n", arg);
+                                //printf("Arg is %s\n", arg);
                                 if(strcmp(user_array[j].user_name, arg) == 0){
                                     loc = j;
                                     
                                     break;
                                 }
                             }
-                            printf("%d test \n", loc);
+                            //printf("%d test \n", loc);
                             if(loc != -1){
                                 client_array[i].user_id = loc;
                                 char msg[] = "Username OK, password required";
+                                printf("Username OK, password required\n");
                                 write(client_array[i].fd,msg,strlen(msg)+1);
                                 continue; 
                             }
                             else{//user does not exist
-                                char msg[] = "Username was not found";
+                                char msg[] = "Username does not exist";
                                 write(client_array[i].fd,msg,strlen(msg)+1);
+                                printf("Username does not exist\n");
                                 continue;
                             }
                         }
                         else if(strcmp(command, "PASS") == 0){
-                            if(strcmp(arg, user_array[client_array[i].user_id].pass) == 0){
+                            if(client_array[i].user_id == -1){//when user is not set yet
+                                char msg[] = "set USER first";
+                                printf("set USER first\n");
+                                write(client_array[i].fd,msg,strlen(msg)+1);
+                                continue;
+                            }
+                            else if(strncmp(user_array[client_array[i].user_id].pass, arg, strlen(arg)) == 0){
                                     char msg[] = "Authentication complete";
+                                    printf("Authentication complete\n");
                                     client_array[i].authen = 1;
                                     write(client_array[i].fd,msg,strlen(msg)+1);
                                     continue;
                                     }
-                            else if(strcmp(arg, user_array[client_array[i].user_id].pass) != 0){
-                                        char msg[] = "wrong password";
-                                        write(client_array[i].fd,msg,strlen(msg)+1);
-                                        continue;
-                                    }
-                            else if(client_array[i].user_id == -1){//when user is not set yet
-                                char msg[] = "set USER first";
-                                write(client_array[i].fd,msg,strlen(msg)+1);
+                            else{
+                                char msg[] = "wrong password";
+                                printf("wrong password\n");
+                                write(client_array[i].fd,msg,strlen(msg)+1);//sending msg
                                 continue;
-                            }
+                                    }
 
+                        }
+                        else if(strcmp(command, "QUIT") == 0){
+                            close(client_array[i].fd);
+                            printf("[%d]Closing connection for a client\n", i);
+                            FD_CLR(client_array[i].fd, &read_fd_set); // clear the file descriptor 
+                            client_array[i].fd = -1;
+                            //client_array[i].authen = -1;
+                            
                         }
 
                     

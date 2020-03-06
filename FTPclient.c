@@ -63,10 +63,12 @@ int main(int argc, char* argv[]) {
         }
         
         if((strcmp(cmd, "USER")) == 0){
-            printf(" buf:%s\n", buf);
             write(sockfd, buf, strlen(1+buf));
             memset(buf, 0, strlen(buf));
-            
+            if (read(sockfd, buf, 1024) == 0) {
+                printf("Connection closed by server\n");
+                exit(0);
+            }
             if((strcmp(buf, "Username does not exist")) == 0){
                 printf("Username does not exist\n");
             }
@@ -80,6 +82,10 @@ int main(int argc, char* argv[]) {
         else if((strcmp(cmd, "PASS")) == 0){
             write(sockfd, buf, strlen(1+buf));
             memset(buf, 0, strlen(buf));
+            if (read(sockfd, buf, 1024) == 0) {
+                printf("Connection closed by server\n");
+                exit(0);
+            }
             if((strcmp(buf, "wrong password")) == 0){
                 printf("wrong password\n");
             }
@@ -93,6 +99,16 @@ int main(int argc, char* argv[]) {
                 printf("Incorrect response from server\n");
             }
         }
+        else if(strcmp(cmd, "QUIT") == 0){
+            printf("Shutting down...\n");
+
+            if(close(sockfd) == 0){//quits the connection
+            printf("Socket closed\n");
+        } else {
+            printf("Error while closing the socket\n");
+        }
+            return(0);
+    }
     }
 
 

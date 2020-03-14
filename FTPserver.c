@@ -80,9 +80,9 @@ int main(int argc, char* argv[]) {
     int i;
     for(i = 0; i < CLIENTMAX; i++){
         client_array[i].authen = -1; // not authenticated
-        client_array[i].fd = -1;
+        client_array[i].fd = -1;//not connected yet
         getcwd(client_array[i].dir, 200);
-        client_array[i].user_id = -1;
+        client_array[i].user_id = -1;//index is not set 
     }
 
     printf("Created client array \n");
@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
             if(client_array[i].fd < 0) continue;
             if (FD_ISSET(client_array[i].fd, &read_fd_set)){
                 memset(buff, 0, sizeof(buff)); //set buffer to zeros
-                int n = recv(client_array[i].fd, buff, 1024, 0);
+                int n = recv(client_array[i].fd, buff, 1024, 0);//gets the message from client
                 if(0 == n){
                     printf("[%d]Closing connection for a client\n", i);
                     close(client_array[i].fd);
@@ -211,12 +211,12 @@ int main(int argc, char* argv[]) {
                             }
                         }
                         else if(strcmp(command, "PASS") == 0){
-                            if(client_array[i].user_id == -1){//when user is not set yet
+                            if(client_array[i].user_id == -1){//when user is not set
                                 char msg[] = "set USER first";
                                 printf("set USER first\n");
                                 write(client_array[i].fd,msg,strlen(msg)+1);
                                 continue;
-                            }
+                            }//if user is set then check the correctness of password
                             else if(strncmp(user_array[client_array[i].user_id].pass, arg, strlen(arg)) == 0){
                                     char msg[] = "Authentication complete";
                                     printf("Authentication complete\n");
@@ -230,7 +230,6 @@ int main(int argc, char* argv[]) {
                                 write(client_array[i].fd,msg,strlen(msg)+1);//sending msg
                                 continue;
                                     }
-
                         }
                         else if(strcmp(command, "QUIT") == 0){
                             close(client_array[i].fd);

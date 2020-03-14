@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
     }
     char buf[1024];// to send and receive messages
     int sockfd;//Communication socket
+    int sockfdt;//Transport socket
     struct sockaddr_in address;
     if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         printf("Cannot open socket \n");
@@ -45,6 +46,7 @@ int main(int argc, char* argv[]) {
     }
     printf("Connected to the server\n");
     while(1){
+        char *arg;
         char *cmd;
         while(1){
             printf("ftp> ");
@@ -61,6 +63,7 @@ int main(int argc, char* argv[]) {
             }
             break;
         }
+        
         
         if((strcmp(cmd, "USER")) == 0){
             write(sockfd, buf, strlen(1+buf));
@@ -99,6 +102,98 @@ int main(int argc, char* argv[]) {
                 printf("Incorrect response from server\n");
             }
         }
+        else if ((strcmp(cmd, "PUT")) == 0) {
+            arg = strtok(NULL, " ");//name of the file to be send
+            printf("This is the command: %s\n", cmd);
+            printf("This is the argument: %s\n", arg);
+            FILE *filepointer;
+            char *line;
+            if(NULL == arg){
+                printf("Please enter PUTT fileName");
+                continue;
+            } 
+            filepointer = fopen(arg, "r");// open the file with name arg
+            if(filepointer == 0){ // if fails
+                printf("Error opening the file \n");
+                continue;
+            }
+            char *aux;
+            char *response;
+            aux = strtok(buf, "\n");
+            memset(buf, 0, strlen(buf));//put zeros in buf
+            sprintf(buf, "PUT %s", arg);
+            write(sockfd, buf, strlen(1+buf));// send the command to the server
+            if (read(sockfd, buf, 1024) == 0) {
+                printf("Connection closed by server\n");
+                exit(0);
+            }
+            response = strtok(buf, "\n");
+            if(NULL == response){
+                printf("Corrupted response from server\n");
+                continue;
+            }
+            else if(strcmp(response, "Autentication required") == 0){
+                printf("Autentication required\n");
+                continue;
+            }
+            else{
+                response = strtok(response, " ");
+                if(strcmp(response, "Ready") != 0){
+                    printf("Server is not ready\n");
+                    continue;
+                }
+                else if(strcmp(response,"Ready") == 0){
+                    response = strtok(NULL, " ");
+                    if(response == NULL){
+                        printf("Port is missing\n");
+                        continue;
+                    }
+                }
+            }
+            //once server is ready and port number is provided ...
+            if((sockfdt = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+                printf("Cannot open socket\n");
+                exit(0);
+            }
+            address.sin_port = htons(atoi(response));
+            size_t length = 0;
+            ssize_t read;
+            if (connect(sockfdt, (struct sockaddr *)&address, sizeof(address)) < 0) {
+                printf("Can't connect to port\n");
+                continue;
+            }
+            while((read = getline(&line, &length, filepointer)) != -1){
+                printf("%s\n", line);
+                write(sockfdt, line, strlen(line+1));
+            }
+            close(filepointer);
+            close(sockfdt);
+
+
+
+            //open file
+            //read it and send it to server
+        }
+
+
+
+
+
+
+
+
+
+
+
+        else if ((strcmp(cmd, "GET")) == 0) {
+            write(sockfd, buf, strlen(1+buf));
+            memset(buf,0, strlen(buf));
+            if(read(sockfd, buf, 1024) == 0){
+                printf("Connection closed by server\n");
+                exit(0);
+            }
+            //check if the fiile is there
+        }
         else if(strcmp(cmd, "QUIT") == 0){
             printf("Shutting down...\n");
 
@@ -107,9 +202,9 @@ int main(int argc, char* argv[]) {
         } else {
             printf("Error while closing the socket\n");
         }
-            return(0);
+            return(1);
     }
-    }
+  }
 
 
 

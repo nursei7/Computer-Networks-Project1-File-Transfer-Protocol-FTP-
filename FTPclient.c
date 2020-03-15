@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
                 continue;
             }
             while((readln = getline(&line, &length, ptr)) != -1){
-                printf("%s\n", line);
+                //printf("%s\n", line); 
                 write(sockfdt, line, readln);
             }
             fclose(ptr);
@@ -176,12 +176,72 @@ int main(int argc, char* argv[]) {
 
 
         else if ((strcmp(cmd, "GET")) == 0) {
-            write(sockfd, buf, strlen(1+buf));
-            memset(buf,0, strlen(buf));
-            if(read(sockfd, buf, 1024) == 0){
-                printf("Connection closed by server\n");
+            arg = strtok(NULL, " ");//name of the file to be send
+            if(NULL == arg){
+                printf("Please enter GET fileName");
+                continue;
+            } 
+            write(sockfd, buf, strlen(buf+1));
+            memset(buf, 0, strlen(buf));
+            if (read(sockfd, buf, 1024) == 0) {
+                printf("Server closed connection\n");
                 exit(0);
             }
+            char* response;
+            response = strtok(buf, "\n");
+            if(NULL == response){
+                printf("Corrupted response from server\n");
+                continue;
+            }
+            else if(strcmp(response, "Autentication required") == 0){
+                printf("Autentication required\n");
+                continue;
+            }
+            else{
+                response = strtok(response, " ");
+                if(strcmp(response, "Ready") != 0){
+                    printf("Server is not ready\n");
+                    continue;
+                }
+                else if(strcmp(response,"Ready") == 0){
+                    response = strtok(NULL, " ");
+                    if(response == NULL){
+                        printf("Port is missing\n");
+                        continue;
+                    }
+                }
+
+            }
+            if((sockfdt = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+                printf("Cannot open socket\n");
+                exit(0);
+            }
+            address.sin_port = htons(atoi(response));
+            size_t length = 0;
+            char *line = (char*)malloc(1024);
+            int readln = 0;
+            if (connect(sockfdt, (struct sockaddr *)&address, sizeof(address)) < 0) {
+                printf("Can't connect to port\n");
+                continue;
+            }
+            int fp = open(arg,O_CREAT|O_WRONLY, 0666);
+            if(fp == -1){
+                printf("Error opening the file\n");
+                continue;
+            }
+            int i = 0;
+            do{
+                readln = read(sockfdt, line, 1024);
+                //printf("%s :%d\n", line, i++);// might print twice but gets correct file
+                write(fp, line, readln);
+                }while(readln != 0);
+                close(fp);
+                close(sockfdt);
+                //free(line);
+
+
+
+
             //check if the fiile is there
         }
 

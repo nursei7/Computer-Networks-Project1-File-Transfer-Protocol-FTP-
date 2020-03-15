@@ -173,6 +173,8 @@ int main(int argc, char* argv[]) {
                     int count = 0;
                     char command[20];
                     char arg[100];
+                    char dir[1000];
+                    char msg[100];
                     str = strtok(buff, " ");
                     while(NULL != str){
                         if(0 == count){
@@ -240,9 +242,8 @@ int main(int argc, char* argv[]) {
                             }
                             else{
                                 //receive data
-                                int portnum = port_begin + 1;
+                                int portnum = port_begin + i;
                                 if(fork() == 0){
-                                    char dir[1000];
                                     memset(&dir, 0, sizeof(dir)); // zero out the buffer
                                     sprintf(dir, "%s/%s", client_array[i].dir, arg);
                                     int ptr = open(dir,O_CREAT|O_WRONLY, 0666);
@@ -250,12 +251,12 @@ int main(int argc, char* argv[]) {
                                         printf("Unable to create file\n");
                                         continue;
                                     }
+                                    int aux = 1;
                                     int sockTrans = socket(AF_INET, SOCK_STREAM, 0);
                                     if (sockTrans < 0) {
                                         printf("Can't open socket\n");
                                         exit(1);
                                     }
-                                    int aux = 1;
                                     setsockopt(sockTrans, SOL_SOCKET, SO_REUSEADDR, &aux, sizeof(int));
                                     struct sockaddr_in clientAddress, serverAddress;
                                     serverAddress.sin_family = AF_INET;
@@ -271,7 +272,6 @@ int main(int argc, char* argv[]) {
                                         printf("Failed to listen to socket\n");
                                         exit(1);
                                     }
-                                    char msg[100];
                                     memset(&msg, 0, sizeof(msg));
                                     sprintf(msg, "Ready %d", portnum);//concatinate portnumber with ready signal
                                     write(client_array[i].fd, msg, strlen(msg)+1);
@@ -307,7 +307,57 @@ int main(int argc, char* argv[]) {
                                 continue;
                             }
                             else{
-                                //send data
+                                int portnum = port_begin + i;
+                                if(fork() == 0){
+                                    memset(&dir, 0, sizeof(dir)); // zero out the buffer
+                                    sprintf(dir, "%s/%s", client_array[i].dir, arg);
+                                    int fp = open(dir,O_RDONLY, 0666);
+                                    int aux = 1;
+                                    int sockTrans = socket(AF_INET, SOCK_STREAM, 0);
+                                    if (sockTrans < 0) {
+                                        printf("Can't open socket\n");
+                                        exit(1);
+                                    }
+                                    setsockopt(sockTrans, SOL_SOCKET, SO_REUSEADDR, &aux, sizeof(int));
+                                    struct sockaddr_in clientAddress, serverAddress;
+                                    serverAddress.sin_family = AF_INET;
+                                    serverAddress.sin_addr.s_addr = INADDR_ANY;
+                                    serverAddress.sin_port = htons(portnum);
+                                    if (bind(sockTrans, (struct sockaddr *) &serverAddress, sizeof(serverAddress))) {
+                                        close(sockTrans);
+                                        printf("Could not bind transport socket\n");
+                                        exit(1);
+                                    }
+                                    if (listen(sockTrans, 5) < 0) {
+                                        close(sockTrans);
+                                        printf("Failed to listen to socket\n");
+                                        exit(1);
+                                    }
+                                    memset(&msg, 0, sizeof(msg));
+                                    sprintf(msg, "Ready %d", portnum);//concatinate portnumber with ready signal
+                                    write(client_array[i].fd, msg, strlen(msg)+1);
+                                    socklen_t length = sizeof(clientAddress); //socklen_t
+                                    int datasock;
+                                    if ((datasock = accept(sockTrans, (struct sockaddr *)(&clientAddress), &length)) < 0) {
+                                        printf("Connection was not accepted\n");
+                                        exit(1);
+                                    }
+                                    char *line = (char*)malloc(1024);
+                                    int readln = 0;
+                                    int i = 0;
+                                    while((readln = read(fp, line, 1024))!= 0){
+                                        if(readln != 0){
+                                        printf("%s %d\n", line, i++);
+                                        write(datasock, line, readln);
+                                        }
+                                        
+                                    }
+
+                                    close(fp);
+                                    close(datasock);
+                                    free(line);
+                                    return 0;
+                                }
                             }
                         }
 

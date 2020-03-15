@@ -104,25 +104,21 @@ int main(int argc, char* argv[]) {
         }
         else if ((strcmp(cmd, "PUT")) == 0) {
             arg = strtok(NULL, " ");//name of the file to be send
-            printf("This is the command: %s\n", cmd);
-            printf("This is the argument: %s\n", arg);
-            FILE *filepointer;
-            char *line;
             if(NULL == arg){
-                printf("Please enter PUTT fileName");
+                printf("Please enter PUT fileName");
                 continue;
             } 
-            filepointer = fopen(arg, "r");// open the file with name arg
-            if(filepointer == 0){ // if fails
+            FILE* ptr = fopen(arg, "r");// open the file with name arg
+            if(ptr == NULL){ // if fails
                 printf("Error opening the file \n");
                 continue;
             }
-            char *aux;
+            char* aux = (char*)malloc(1024);
+            strcpy(aux, buf);
             char *response;
-            aux = strtok(buf, "\n");
             memset(buf, 0, strlen(buf));//put zeros in buf
-            sprintf(buf, "PUT %s", arg);
-            write(sockfd, buf, strlen(1+buf));// send the command to the server
+            write(sockfd, aux, strlen(1+aux));// send the command to the server
+            free(aux);
             if (read(sockfd, buf, 1024) == 0) {
                 printf("Connection closed by server\n");
                 exit(0);
@@ -157,31 +153,25 @@ int main(int argc, char* argv[]) {
             }
             address.sin_port = htons(atoi(response));
             size_t length = 0;
-            ssize_t read;
+            char *line = (char*)malloc(1024);
+            int readln = 0;
             if (connect(sockfdt, (struct sockaddr *)&address, sizeof(address)) < 0) {
                 printf("Can't connect to port\n");
                 continue;
             }
-            while((read = getline(&line, &length, filepointer)) != -1){
+            while((readln = getline(&line, &length, ptr)) != -1){
                 printf("%s\n", line);
-                write(sockfdt, line, strlen(line+1));
+                write(sockfdt, line, readln);
             }
-            close(filepointer);
+            fclose(ptr);
             close(sockfdt);
+            free(line);
 
 
 
             //open file
             //read it and send it to server
         }
-
-
-
-
-
-
-
-
 
 
 
@@ -194,6 +184,13 @@ int main(int argc, char* argv[]) {
             }
             //check if the fiile is there
         }
+
+
+
+
+
+
+
         else if(strcmp(cmd, "QUIT") == 0){
             printf("Shutting down...\n");
 

@@ -245,7 +245,7 @@ int main(int argc, char* argv[]) {
                                     char dir[1000];
                                     memset(&dir, 0, sizeof(dir)); // zero out the buffer
                                     sprintf(dir, "%s/%s", client_array[i].dir, arg);
-                                    FILE *ptr = fopen(dir,O_CREAT|O_WRONLY, 0666);
+                                    int ptr = open(dir,O_CREAT|O_WRONLY, 0666);
                                     if(ptr == -1){
                                         printf("Unable to create file\n");
                                         continue;
@@ -282,20 +282,17 @@ int main(int argc, char* argv[]) {
                                         exit(1);
                                     }
                                     char* line = (char*)malloc(1024);
-                                    int isEmpty = isEmpty = read(sockTrans, line, 1024);
-                                    if(isEmpty != 0){
+                                    int isEmpty = 0;
+                                    do{
+                                        isEmpty = read(datasock, line, 1024);
+                                        printf("%s\n", line);
                                         write(ptr, line, isEmpty);
-                                    }
-                                    isEmpty = read(sockTrans, line, 1024);
-                                    printf("Checkpoint %d\n", isEmpty);
-                                    while(isEmpty != 0){
-                                        write(ptr, line, isEmpty);
-                                        isEmpty = read(sockTrans, line, 1024);
-                                    }
-                                    printf("file is written\n");
+                                    }while(isEmpty != 0);
+                                    printf("Received the file\n");
                                     close(ptr);
                                     free(line);
-                                    close(sockTrans);
+                                    close(datasock);
+                                    return 0;
                                 }
                             }
                         }

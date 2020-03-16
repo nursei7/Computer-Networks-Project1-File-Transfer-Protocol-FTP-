@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 
     size_t length = 0;
     FILE *filepointer;
-    char * line;
+    char * lin;
     ssize_t readln;
 
     filepointer = fopen("userpass.txt", "r"); // opens the file to read usernames and passwords
@@ -40,18 +40,18 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    readln = getline(&line, &length, filepointer);
+    readln = getline(&lin, &length, filepointer);
 
-    int numofusers = atoi(line);
+    int numofusers = atoi(lin);
     int index = 0;
 
     printf("Read %d from file \n", numofusers);
     struct user *user_array = malloc(sizeof(struct user)*numofusers);
     printf("Allocated user array\n");
-    while((readln = getline(&line, &length, filepointer)) != -1){
+    while((readln = getline(&lin, &length, filepointer)) != -1){
         int count = 0;
         char * str;
-        str  = strtok(line, " ");
+        str  = strtok(lin, " ");
 
         while(str != NULL){
             if(count == 0){
@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
         client_array[i].authen = -1; // not authenticated
         client_array[i].fd = -1;//not connected yet
         getcwd(client_array[i].dir, 200);
-        client_array[i].user_id = -1;//index is not set 
+        client_array[i].user_id = -1;//index is not set
     }
 
     printf("Created client array \n");
@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
                 if(0 == n){
                     printf("[%d]Closing connection for a client\n", i);
                     close(client_array[i].fd);
-                    FD_CLR(client_array[i].fd, &read_fd_set); 
+                    FD_CLR(client_array[i].fd, &read_fd_set);
                     client_array[i].fd = -1;
                 }
                 else{
@@ -185,7 +185,7 @@ int main(int argc, char* argv[]) {
                         }
                         count = count +1;
                         str = strtok(NULL, " ");
-                    }   
+                    }
                         if(strcmp(command, "USER") == 0){
                             int j = 0;
                             int loc = -1;
@@ -200,47 +200,59 @@ int main(int argc, char* argv[]) {
                             //printf("%d test \n", loc);
                             if(loc != -1){
                                 client_array[i].user_id = loc;
-                                char msg[] = "Username OK, password required";
+                                char ms[] = "Username OK, password required";
                                 printf("Username OK, password required\n");
-                                write(client_array[i].fd,msg,strlen(msg)+1);
-                                continue; 
+                                write(client_array[i].fd,ms,strlen(ms)+1);
+                                continue;
                             }
                             else{//user does not exist
-                                char msg[] = "Username does not exist";
-                                write(client_array[i].fd,msg,strlen(msg)+1);
+                                char ms[] = "Username does not exist";
+                                write(client_array[i].fd,ms,strlen(ms)+1);
                                 printf("Username does not exist\n");
                                 continue;
                             }
                         }
                         else if(strcmp(command, "PASS") == 0){
                             if(client_array[i].user_id == -1){//when user is not set
-                                char msg[] = "set USER first";
+                                char ms1[] = "set USER first";
                                 printf("set USER first\n");
-                                write(client_array[i].fd,msg,strlen(msg)+1);
+                                write(client_array[i].fd,ms1,strlen(ms1)+1);
                                 continue;
                             }//if user is set then check the correctness of password
                             else if(strncmp(user_array[client_array[i].user_id].pass, arg, strlen(arg)) == 0){
-                                    char msg[] = "Authentication complete";
+                                    char ms1[] = "Authentication complete";
                                     printf("Authentication complete\n");
                                     client_array[i].authen = 1;
-                                    write(client_array[i].fd,msg,strlen(msg)+1);
+                                    write(client_array[i].fd,ms1,strlen(ms1)+1);
                                     continue;
                                     }
                             else{
-                                char msg[] = "wrong password";
+                                char ms1[] = "wrong password";
                                 printf("wrong password\n");
-                                write(client_array[i].fd,msg,strlen(msg)+1);//sending msg
+                                write(client_array[i].fd,ms1,strlen(ms1)+1);//sending msg
                                 continue;
                                     }
                         }
-                        else if(strcmp(command, "PUT") == 0){
-                            if(client_array[i].authen != 1){
+                        else if(strcmp(command, "QUIT") == 0){
+                            close(client_array[i].fd);
+                            client_array[i].fd = -1;
+                            client_array[i].authen = -1;
+                            printf("[%d]Closing connection for a client\n", i);
+                            FD_CLR(client_array[i].fd, &read_fd_set); // clear the file descriptor
+                            client_array[i].fd = -1;
+                            client_array[i].authen = -1;
+                            
+                        }
+                        if(client_array[i].authen != 1){
                                 printf("Autentication required\n");
                                 char msg[] = "Autentication required";
                                 write(client_array[i].fd,msg,strlen(msg)+1);
                                 continue;
-                            }
-                            else{
+                        }
+                        else{
+                            if(strcmp(command, "PUT") == 0){
+                            
+                            
                                 //receive data
                                 int portnum = port_begin + i;
                                 if(fork() == 0){
@@ -272,6 +284,7 @@ int main(int argc, char* argv[]) {
                                         printf("Failed to listen to socket\n");
                                         exit(1);
                                     }
+                                    //char msg[100];
                                     memset(&msg, 0, sizeof(msg));
                                     sprintf(msg, "Ready %d", portnum);//concatinate portnumber with ready signal
                                     write(client_array[i].fd, msg, strlen(msg)+1);
@@ -295,18 +308,7 @@ int main(int argc, char* argv[]) {
                                     return 0;
                                 }
                             }
-                        }
-
-
-
-                        else if(strcmp(command, "GET") == 0){
-                            if(client_array[i].authen != 1){
-                                printf("Autentication required\n");
-                                char msg[] = "Autentication required";
-                                write(client_array[i].fd,msg,strlen(msg)+1);
-                                continue;
-                            }
-                            else{
+                            else if(strcmp(command, "GET") == 0){
                                 int portnum = port_begin + i;
                                 if(fork() == 0){
                                     memset(&dir, 0, sizeof(dir)); // zero out the buffer
@@ -333,23 +335,34 @@ int main(int argc, char* argv[]) {
                                         printf("Failed to listen to socket\n");
                                         exit(1);
                                     }
-                                    memset(&msg, 0, sizeof(msg));
-                                    sprintf(msg, "Ready %d", portnum);//concatinate portnumber with ready signal
-                                    write(client_array[i].fd, msg, strlen(msg)+1);
-                                    socklen_t length = sizeof(clientAddress); //socklen_t
-                                    int datasock;
-                                    if ((datasock = accept(sockTrans, (struct sockaddr *)(&clientAddress), &length)) < 0) {
-                                        printf("Connection was not accepted\n");
-                                        exit(1);
+                                    if(access( arg, F_OK ) == -1 ) {
+                                        //char msg[100];
+                                        memset(&msg, 0, sizeof(msg));
+                                        sprintf(msg,"No such file on server");
+                                        write(client_array[i].fd, msg, strlen(msg)+1);
+                                        printf("%s\n", msg);
+                                        close(sockTrans);
+                                        continue;
                                     }
-                                    char *line = (char*)malloc(1024);
-                                    int readln = 0;
-                                    int i = 0;
-                                    while((readln = read(fp, line, 1024))!= 0){
-                                        if(readln != 0){
-                                        printf("%s %d\n", line, i++);
-                                        write(datasock, line, readln);
+                                    else{
+                                        //char msg[100];
+                                        memset(&msg, 0, sizeof(msg));
+                                        sprintf(msg, "Ready %d", portnum);//concatinate portnumber with ready signal
+                                        write(client_array[i].fd, msg, strlen(msg)+1);
+                                        socklen_t length = sizeof(clientAddress); //socklen_t
+                                        int datasock;
+                                        if ((datasock = accept(sockTrans, (struct sockaddr *)(&clientAddress), &length)) < 0) {
+                                            printf("Connection was not accepted\n");
+                                            exit(1);
                                         }
+                                        char *line = (char*)malloc(1024);
+                                        int readln = 0;
+                                        int i = 0;
+                                        while((readln = read(fp, line, 1024))!= 0){
+                                            if(readln != 0){
+                                            printf("%s %d\n", line, i++);
+                                            write(datasock, line, readln);
+                                            }
                                         
                                     }
 
@@ -358,19 +371,36 @@ int main(int argc, char* argv[]) {
                                     free(line);
                                     return 0;
                                 }
+                                }
                             }
+                            else if((strcmp(command, "PWD")) == 0){
+                                printf("%s \n", command);
+                                printf("REAched it\n");
+                                char *line = (char*)malloc(1024);
+                                memset(line, 0, 1024);
+                                sprintf(line, "%s", client_array[i].dir);
+                                printf("%s \n", line);
+                                write(client_array[i].fd, line, strlen(line+1));
+                                free(line);
+                            }
+                        
+
+
+
+
+
+
+
+
+
+
                         }
 
 
 
-                        else if(strcmp(command, "QUIT") == 0){
-                            close(client_array[i].fd);
-                            printf("[%d]Closing connection for a client\n", i);
-                            FD_CLR(client_array[i].fd, &read_fd_set); // clear the file descriptor 
-                            client_array[i].fd = -1;
-                            //client_array[i].authen = -1;
-                            
-                        }
+
+
+                        
 
                     
 
@@ -386,4 +416,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-

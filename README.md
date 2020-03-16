@@ -19,5 +19,58 @@ Limitations:
 * Uploads and Downloads work only if a file exists in the current directory of a sender. To improve it we can look all folders to find a file and then send it.
 
 
+Test Cases:
+* Incorrect command
+  client:ftp> mkdir folder
+  server:An invalid ftp command
+
+* User autentication
+ There is a file containing usernames and passwords
+ username: user, password: 123
+ client:ftp> USER uesr
+ server:Username does not exist
+ client:ftp> USER user
+ server:Username OK, password required
+ client:ftp> PASS qwerty
+ server:wrong password
+ client:PASS 123
+ server:Authentication complete
+ 
+ 
+ *Downloading a file
+  Goal: GET testget.txt
+ftp> !LS
+FTPclient	README.md	server
+FTPclient.c	makefile	testsend.txt
+
+ftp> GET testget.txt
+Received the file successfuly
+
+ftp> !LS
+FTPclient	README.md	server		testsend.txt
+FTPclient.c	makefile	testget.txt    <----- successfully downloaded
+
+ 
+ *Uploading a file to server
+  Goal: PUT testsend.txt to server
+ftp> LS 
+FTPserver
+FTPserver.c
+makefile
+testget.txt
+userpass.txt
+
+ftp> PUT testsend.txt
+ftp> LS
+FTPserver
+FTPserver.c
+makefile
+testget.txt
+testsend.txt   <---- file was uploaded to server
+userpass.txt
+
+
+
+
 
 

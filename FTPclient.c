@@ -193,6 +193,10 @@ int main(int argc, char* argv[]) {
                 printf("Corrupted response from server\n");
                 continue;
             }
+            if(strcmp(response, "No such file on server") == 0){
+                printf("%s: no such file on server\n",arg);
+                continue;
+            }
             else if(strcmp(response, "Autentication required") == 0){
                 printf("Autentication required\n");
                 continue;
@@ -238,18 +242,74 @@ int main(int argc, char* argv[]) {
                 close(fp);
                 close(sockfdt);
                 //free(line);
+        }
+        else if(strcmp(cmd, "PWD") == 0){
+            write(sockfd, buf, strlen(buf+1));
+            memset(buf, 0, strlen(buf)+1);
+            if (read(sockfd, buf, 1024) == 0) {
+                printf("Server closed connection\n");
+                exit(0);
+            }
+            char *response;
+            response = strtok(buf, "\n");
+            if(NULL == response){
+                printf("Corrupted response from server\n");
+                continue;
+            }
+            else if(strcmp(response, "Autentication required") == 0){
+                printf("Autentication required\n");
+                continue;
+            }
+            else if(strcmp(response, "FAIL") == 0){
+                printf("Error executing PWD on server \n");
+                continue;
+            } 
+            else{//if it's not fail
+                printf("Command executed\n");
+                //response = strtok(NULL, " ");
+                printf("server: %s \n", response);
+                continue;
+            }
 
 
-
-
-            //check if the fiile is there
+        }
+        else if(strcmp(cmd, "CD") == 0){
+            
+        }
+        else if(strcmp(cmd, "LS") == 0){
+            
         }
 
-
-
-
-
-
+        else if(strcmp(cmd, "!PWD") == 0){
+        memset(buf, 0, strlen(buf));
+        getcwd(buf, 1024);
+        printf("%s\n", buf);
+        memset(buf, 0, strlen(buf));
+        }
+        else if(strcmp(cmd, "!CD") == 0){
+            //Get the arguments
+            arg = strtok(NULL, " ");
+            if(arg == NULL){
+            continue;
+            }
+            //Change the directory
+            if(chdir(arg) == -1){
+                printf("%s: error changing directory\n", arg);
+            }
+        }
+        else if(strcmp(cmd, "!LS") == 0){
+            arg = strtok(NULL, " ");
+            int ls;
+            if(fork() == 0){ //fork ;)
+            char* argv[2];
+            argv[0] = "/bin/ls";//call LS with given argvs
+            argv[1] = arg;
+            execv(argv[0], argv);
+            }
+            else {
+                wait(&ls);
+            }
+        }
 
         else if(strcmp(cmd, "QUIT") == 0){
             printf("Shutting down...\n");
@@ -260,7 +320,11 @@ int main(int argc, char* argv[]) {
             printf("Error while closing the socket\n");
         }
             return(1);
-    }
+        }
+        else{
+            printf("An invalid ftp command\n");
+            continue;
+        }
   }
 
 

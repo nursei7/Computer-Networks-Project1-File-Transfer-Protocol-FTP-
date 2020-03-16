@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
 
             for(i = 0; i < CLIENTMAX; i++){
                 if(client_array[i].fd < 0){
-                    printf("[%d]Adding a client to the list of sockets with socket #\n", i);
+                    printf("[%d]Adding a client to the list of sockets with socket\n", i);
                     client_array[i].fd = acc_socket;
                     break;
                 }
@@ -166,6 +166,7 @@ int main(int argc, char* argv[]) {
                     close(client_array[i].fd);
                     FD_CLR(client_array[i].fd, &read_fd_set);
                     client_array[i].fd = -1;
+                    client_array[i].authen = -1;
                 }
                 else{
                     printf("[%d]Received:  %s\n", i, buff);
@@ -374,37 +375,72 @@ int main(int argc, char* argv[]) {
                                 }
                             }
                             else if((strcmp(command, "PWD")) == 0){
-                                printf("%s \n", command);
-                                printf("REAched it\n");
                                 char *line = (char*)malloc(1024);
                                 memset(line, 0, 1024);
-                                sprintf(line, "%s", client_array[i].dir);
+                                sprintf(line, "%s\n", client_array[i].dir);
                                 printf("%s \n", line);
                                 write(client_array[i].fd, line, strlen(line+1));
                                 free(line);
                             }
-                        
+                            else if((strcmp(command, "LS")) == 0){
+                                if(fork() == 0){
+                                    memset(dir, 0, sizeof(dir)); 
+                                    sprintf(dir, "ls '%s'", client_array[i].dir);
+                                    FILE* fp;
+                                    fp = popen(dir, "r");
+                                    
+                                    if(NULL != fp){
+                                        memset(&msg, 0, sizeof(msg));
+                                        sprintf(msg, "SUCCESS\n");
+                                        write(client_array[i].fd, msg,strlen(msg+1));
+                                        char* line = (char*)malloc(1024);
+                                        while(!feof(fp)){
+                                            memset(line, 0 , 1024);
+                                            fgets(line, 1024, fp);
+                                            write(client_array[i].fd, line, strlen(line));
+                                        }
+                                        write(client_array[i].fd, "\r\n\0", 3);
+                                        free(line);
+                                        fclose(fp);
+                                        return 0;
+                                    }
+                                    else if(NULL == fp){
+                                        memset(&msg, 0, sizeof(msg)); // zero out the buffer
+                                        sprintf(msg, "FAIL\n");
+                                        write(client_array[i].fd, msg,strlen(msg+1));
+                                        continue;
+                                    }
 
 
 
-
-
-
-
-
-
+                                }
+                            
+                            }
+                             else if(strcmp(command, "CD") == 0){
+                                if(client_array[i].authen != 1){
+                                    printf("Autentication required\n");
+                                    char msg[] = "Autentication required";
+                                    write(client_array[i].fd,msg,strlen(msg)+1);
+                                    continue;
+                                }
+                                else{
+                                    if((chdir(client_array[i].dir) == -1) || (chdir(arg) == -1)){
+                                        memset(&msg, 0, sizeof(msg));
+                                        sprintf(msg, "FAIL\n");
+                                        write(client_array[i].fd, msg,strlen(msg+1));
+                                        continue;
+                                    }
+                                    else{
+                                        memset(&msg, 0, sizeof(msg));
+                                        sprintf(msg, "SUCCESS\n");
+                                        write(client_array[i].fd, msg,strlen(msg+1));
+                                        getcwd(client_array[i].dir, 1024);
+                                    }
+                                }
+                            }
 
                         }
 
-
-
-
-
-                        
-
-                    
-
-                    
                 }
 
             }

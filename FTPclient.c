@@ -241,6 +241,7 @@ int main(int argc, char* argv[]) {
                 }while(readln != 0);
                 close(fp);
                 close(sockfdt);
+                printf("Received the file successfuly\n");
                 //free(line);
         }
         else if(strcmp(cmd, "PWD") == 0){
@@ -265,7 +266,6 @@ int main(int argc, char* argv[]) {
                 continue;
             } 
             else{//if it's not fail
-                printf("Command executed\n");
                 //response = strtok(NULL, " ");
                 printf("server: %s \n", response);
                 continue;
@@ -273,11 +273,60 @@ int main(int argc, char* argv[]) {
 
 
         }
-        else if(strcmp(cmd, "CD") == 0){
-            
-        }
         else if(strcmp(cmd, "LS") == 0){
-            
+            write(sockfd, buf, strlen(buf+1));
+            memset(buf, 0, strlen(buf)+1);
+            if (read(sockfd, buf, 1024) == 0) {
+                printf("Server closed connection\n");
+                exit(0);
+            }
+            char *response;
+            response = strtok(buf, "\n");
+            if(NULL == response){
+                printf("Corrupted response from server\n");
+                continue;
+            }
+            else if(strcmp(response, "Autentication required") == 0){
+                printf("Autentication required\n");
+                continue;
+            }
+            else if(strcmp(response, "FAIL") == 0){
+                printf("Error executing LS on server \n");
+                continue;
+            }
+            char* line = (char*)malloc(1024);
+            int readln = 0;
+            while((readln = read(sockfd, line, 1024)) != 0 && (strcmp("\r\n",line) != 0)){
+                printf("%s",line);
+            }
+            free(line);
+        }
+        else if(strcmp(cmd, "CD") == 0){
+            write(sockfd, buf, strlen(buf+1));
+            memset(buf, 0, strlen(buf)+1);
+            if (read(sockfd, buf, 1024) == 0) {
+                printf("Server closed connection\n");
+                exit(0);
+            }
+            char *response;
+            response = strtok(buf, "\n");
+            if(NULL == response){
+                printf("Corrupted response from server\n");
+                continue;
+            }
+            else if(strcmp(response, "Autentication required") == 0){
+                printf("Autentication required\n");
+                continue;
+            }
+            else if(strcmp(response, "FAIL") == 0){
+                printf("Error executing CD on server \n");
+                continue;
+            }
+            else{//if it's not fail
+                //response = strtok(NULL, " ");
+                printf("server: %s \n", response);
+                continue;
+            } 
         }
 
         else if(strcmp(cmd, "!PWD") == 0){
